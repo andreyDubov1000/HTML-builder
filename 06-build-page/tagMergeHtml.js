@@ -21,6 +21,10 @@ function tagMergeHtml(__dirname, templateHtml, componentsFolder, distFolder) {
 
   readHtml.on('end', function () {
     fs.readdir(componentsHtml, { withFileTypes: true }, (err, files) => {
+      if (err) {
+        console.error(`Reading error, folder : ${componentsHtml}\n`, err)
+        return
+      }
       for (const file of files) {
         const pathToCheck = path.join(componentsHtml, `${file.name}`)
         if (file.isFile() && path.extname(pathToCheck) === '.html') {
@@ -30,13 +34,15 @@ function tagMergeHtml(__dirname, templateHtml, componentsFolder, distFolder) {
       Promise.all(arrayPromises)
         .then(makeMainHtml)
         .catch((err) => console.error(err))
-      if (err) console.error(err)
     })
   })
 
   function makeMainHtml() {
     fs.mkdir(dist, { recursive: true }, (err) => {
-      if (err) console.error(err)
+      if (err) {
+        console.error(err)
+        return
+      }
       fs.writeFile(mainHtmlFilePath, mainContent, (err) => {
         if (err) console.error(err)
       })
@@ -48,9 +54,8 @@ function tagMergeHtml(__dirname, templateHtml, componentsFolder, distFolder) {
       const fileName = file.name.split('.')[0]
       const regExp = new RegExp(`{{${fileName}}}`, 'ig')
       fs.readFile(path, 'utf-8', (err, contentHtml) => {
+        if (err) rej(new Error(`Reading error, file ${fileName}\n`))
         mainContent = mainContent.replace(regExp, contentHtml)
-
-        if (err) rej(new Error(`Reading error, file ${fileName}`))
         res(mainContent)
       })
     })

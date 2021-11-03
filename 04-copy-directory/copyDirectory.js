@@ -9,6 +9,10 @@ function copyDirectory(__dirname, folderSrc, folderDist) {
 
   function clearDir(dist) {
     fs.readdir(dist, { withFileTypes: true }, (err, files) => {
+      if (err) {
+        console.error(err)
+        return
+      }
       for (const file of files) {
         const pathItem = path.join(dist, file.name)
         if (file.isDirectory()) {
@@ -19,28 +23,31 @@ function copyDirectory(__dirname, folderSrc, folderDist) {
           })
         }
       }
-      if (err) console.error(err)
     })
   }
 
   function copyDir(dist, src) {
     fs.mkdir(dist, { recursive: true }, (err) => {
-      if (err) console.error(err)
-
+      if (err) {
+        console.error("Can't make folder", err)
+        return
+      }
       fs.readdir(src, { withFileTypes: true }, (err, files) => {
+        if (err) {
+          console.error(err)
+          return
+        }
         for (const file of files) {
           if (file.isDirectory()) {
             copyDir(path.join(dist, file.name), path.join(src, file.name))
           } else {
             const pathItemSrc = path.join(src, file.name)
             const pathItemDist = path.join(dist, file.name)
-
             fs.copyFile(pathItemSrc, pathItemDist, (err) => {
               if (err) {
-                console.error(err)
+                console.error("Can't copy files", err)
               }
             })
-            if (err) console.error(err)
           }
         }
       })
@@ -49,9 +56,6 @@ function copyDirectory(__dirname, folderSrc, folderDist) {
 
   fs.access(dist, fs.constants.F_OK, (err) => {
     if (!err) {
-      // fs.rm(dist, { recursive: true, force: true }, (err) => console.error(err))
-      // fs.rm не работает в версии node до v14.14.0, у меня 13.14, win7
-
       clearDir(dist)
     }
   })
