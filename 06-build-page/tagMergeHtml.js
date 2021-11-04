@@ -1,5 +1,8 @@
 const path = require('path')
 const fs = require('fs')
+const { promisify } = require('util')
+const readFilePromise = promisify(fs.readFile)
+
 module.exports = tagMergeHtml
 
 function tagMergeHtml(__dirname, templateHtml, componentsFolder, distFolder) {
@@ -50,14 +53,25 @@ function tagMergeHtml(__dirname, templateHtml, componentsFolder, distFolder) {
   }
 
   function myPromisRead(file, path) {
-    return new Promise((res, rej) => {
-      const fileName = file.name.split('.')[0]
-      const regExp = new RegExp(`{{${fileName}}}`, 'ig')
-      fs.readFile(path, 'utf-8', (err, contentHtml) => {
-        if (err) rej(new Error(`Reading error, file ${fileName}\n`))
-        mainContent = mainContent.replace(regExp, contentHtml)
-        res(mainContent)
-      })
-    })
+    const fileName = file.name.split('.')[0]
+    const regExp = new RegExp(`{{${fileName}}}`, 'ig')
+    return readFilePromise(path, 'utf-8')
+      .then(
+        (contentHtml) =>
+          (mainContent = mainContent.replace(regExp, contentHtml))
+      )
+      .catch((err) => console.error(err))
   }
+
+  // function myPromisRead(file, path) {
+  //   return new Promise((res, rej) => {
+  //     const fileName = file.name.split('.')[0]
+  //     const regExp = new RegExp(`{{${fileName}}}`, 'ig')
+  //     fs.readFile(path, 'utf-8', (err, contentHtml) => {
+  //       if (err) rej(new Error(`Reading error, file ${fileName}\n`))
+  //       mainContent = mainContent.replace(regExp, contentHtml)
+  //       res(mainContent)
+  //     })
+  //   })
+  // }
 }
