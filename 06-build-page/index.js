@@ -116,22 +116,42 @@ function copyDirectory(__dirname, folderSrc, folderDist) {
   const dist = path.join(__dirname, folderDist)
 
   function clearDir(dist) {
-    fs.readdir(dist, { withFileTypes: true }, (err, files) => {
-      if (err) {
-        console.error(err)
-        return
-      }
-      for (const file of files) {
-        const pathItem = path.join(dist, file.name)
-        if (file.isDirectory()) {
-          clearDir(pathItem)
-        } else {
-          fs.unlink(pathItem, (err) => {
-            if (err) console.error(err)
-          })
+    const unlink = (path) =>
+      new Promise((res, rej) =>
+        fs.unlink(path, (err) => {
+          if (err) {
+            rej(err)
+          }
+          res(true)
+        })
+      )
+    const prArr = []
+    return new Promise((res, rej) =>
+      fs.readdir(dist, { withFileTypes: true }, (err, files) => {
+        if (err) {
+          rej(err)
         }
-      }
-    })
+        for (const file of files) {
+          const pathItem = path.join(dist, file.name)
+          if (file.isDirectory()) {
+            prArr.push(clearDir(pathItem))
+          } else {
+            prArr.push(unlink(pathItem))
+          }
+        }
+
+        Promise.all(prArr)
+          .then(() =>
+            fs.rmdir(dist, (err) => {
+              if (err) {
+                console.error(err)
+              }
+              res()
+            })
+          )
+          .catch((err) => console.error(err))
+      })
+    )
   }
 
   function copyDir(dist, src) {
@@ -151,6 +171,7 @@ function copyDirectory(__dirname, folderSrc, folderDist) {
           } else {
             const pathItemSrc = path.join(src, file.name)
             const pathItemDist = path.join(dist, file.name)
+
             fs.copyFile(pathItemSrc, pathItemDist, (err) => {
               if (err) {
                 console.error("Can't copy files", err)
@@ -165,8 +186,10 @@ function copyDirectory(__dirname, folderSrc, folderDist) {
   fs.access(dist, fs.constants.F_OK, (err) => {
     if (!err) {
       clearDir(dist)
+        .then(() => copyDir(dist, src))
+        .catch((err) => console.error(err))
+    } else {
+      copyDir(dist, src)
     }
   })
-
-  copyDir(dist, src)
 }
